@@ -1,0 +1,46 @@
+name: Update Bitcoin Price Graph
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Runs everyday at 6AM
+  push:
+    branches:
+      - main  # Adjust the branch name if needed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: pip install matplotlib pandas requests
+
+    - name: Run Python script
+      run: python generate_graph.py
+            
+    - name: Move bitcoin_prices.csv to the 'data' directory
+      run: mv bitcoin_prices_$(date +'%Y-%m-%d').csv data/
+
+    - name: Commit README.md, image, and CSV
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+        git add README.md data/bitcoin_prices_$(date +'%Y-%m-%d').csv bitcoin_price.png
+        git commit -m "Update README.md and add Bitcoin price data"
+        git push
+
+    - name: Clear commit
+      run: |
+        git checkout --orphan tmp
+        git commit -m "$(date)"
+        git branch -D main
+        git branch -m tmp main
+        git push --set-upstream origin main -f
